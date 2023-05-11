@@ -67,7 +67,7 @@ except AttributeError:
 try:
     import wandb
     has_wandb = True
-except ImportError: 
+except ImportError:
     has_wandb = False
 
 torch.backends.cudnn.benchmark = True
@@ -295,11 +295,11 @@ parser.add_argument('--seed', type=int, default=42, metavar='S',
                     help='random seed (default: 42)')
 parser.add_argument('--worker-seeding', type=str, default='all',
                     help='worker seed mode (default: all)')
-parser.add_argument('--log-interval', type=int, default=50, metavar='N',
+parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--recovery-interval', type=int, default=0, metavar='N',
                     help='how many batches to wait before writing recovery checkpoint')
-parser.add_argument('--checkpoint-hist', type=int, default=10, metavar='N',
+parser.add_argument('--checkpoint-hist', type=int, default=1, metavar='N',
                     help='number of checkpoints to keep (default: 10)')
 parser.add_argument('-j', '--workers', type=int, default=8, metavar='N',
                     help='how many training processes to use (default: 4)')
@@ -321,6 +321,7 @@ parser.add_argument('--output', default='', type=str, metavar='PATH',
                     help='path to output folder (default: none, current dir)')
 parser.add_argument('--experiment', default='', type=str, metavar='NAME',
                     help='name of train experiment, name of sub-folder for output')
+parser.add_argument("--run_name", default="", help="run name in experiment")
 parser.add_argument('--eval-metric', default='top1', type=str, metavar='EVAL_METRIC',
                     help='Best metric (default: "top1"')
 parser.add_argument('--tta', type=int, default=0, metavar='N',
@@ -330,11 +331,12 @@ parser.add_argument('--use-multi-epochs-loader', action='store_true', default=Fa
                     help='use the multi-epochs-loader to save time at the beginning of every epoch')
 parser.add_argument('--log-wandb', action='store_true', default=False,
                     help='log training and validation metrics to wandb')
+parser.add_argument("--gpu_id", default="", help="gpu id")
 
 
-def _parse_args():
+def _parse_args(args_input=None):
     # Do we have a config file to parse?
-    args_config, remaining = config_parser.parse_known_args()
+    args_config, remaining = config_parser.parse_known_args(args_input)
     if args_config.config:
         with open(args_config.config, 'r') as f:
             cfg = yaml.safe_load(f)
@@ -349,17 +351,19 @@ def _parse_args():
     return args, args_text
 
 
-def main():
+def main(args_input = None):
     setup_default_logging()
-    args, args_text = _parse_args()
-    
+    args, args_text = _parse_args(args_input)
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+
     if args.log_wandb:
         if has_wandb:
-            wandb.init(project=args.experiment, config=args)
-        else: 
+            wandb.login(key="d105197e21820591299a9eb1217d3c6f8ea7e93d")
+            wandb.init(project=args.experiment, config=args, name=args.run_name)
+        else:
             _logger.warning("You've requested to log metrics to wandb but package not found. "
                             "Metrics not being logged to wandb, try `pip install wandb`")
-             
+
     args.prefetcher = not args.no_prefetcher
     args.distributed = False
     if 'WORLD_SIZE' in os.environ:
@@ -415,7 +419,9 @@ def main():
         checkpoint_path=args.initial_checkpoint,
         tuning_mode=args.tuning_mode)
 
-    
+    if args.log_wandb:
+        wandb.watch(model, log="all")
+
     if args.num_classes is None:
         assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
         args.num_classes = model.num_classes  # FIXME handle model default vs config num_classes more elegantly
@@ -635,10 +641,11 @@ def main():
         train_loss_fn = nn.CrossEntropyLoss()
     train_loss_fn = train_loss_fn.cuda()
     validate_loss_fn = nn.CrossEntropyLoss().cuda()
-        
+
     # setup checkpoint saver and eval metric tracking
     eval_metric = args.eval_metric
     best_metric = None
+    best_metric_original = 0
     best_epoch = None
     saver = None
     output_dir = None
@@ -679,7 +686,7 @@ def main():
             best_metric, best_epoch = saver.save_checkpoint(start_epoch, metric=save_metric)
 
         return
-        
+
     try:
         for epoch in range(start_epoch, num_epochs):
             if args.distributed and hasattr(loader_train.sampler, 'set_epoch'):
@@ -696,6 +703,15 @@ def main():
                 distribute_bn(model, args.world_size, args.dist_bn == 'reduce')
 
             eval_metrics = validate(model, loader_eval, validate_loss_fn, args, amp_autocast=amp_autocast)
+
+
+            if best_metric_original < eval_metrics["top1"]:
+                best_metric_original = eval_metrics["top1"]
+            best_metric_dic = OrderedDict(epoch=epoch)
+            best_metric_dic.update([('best_eval_acc_top_1_original', best_metric_original)])
+            if args.log_wandb:
+                wandb.log(best_metric_dic)
+
 
             if model_ema is not None and not args.model_ema_force_cpu:
                 if args.distributed and args.dist_bn in ('broadcast', 'reduce'):
@@ -718,10 +734,17 @@ def main():
                 save_metric = eval_metrics[eval_metric]
                 best_metric, best_epoch = saver.save_checkpoint(epoch, metric=save_metric)
 
+            best_metric_dic = OrderedDict(epoch=epoch)
+            best_metric_dic.update([('best_eval_acc_top_1_ema', best_metric)])
+            if args.log_wandb:
+                wandb.log(best_metric_dic)
+
     except KeyboardInterrupt:
         pass
     if best_metric is not None:
         _logger.info('*** Best metric: {0} (epoch {1})'.format(best_metric, best_epoch))
+
+    wandb.finish()
 
 
 def train_one_epoch(
@@ -816,6 +839,8 @@ def train_one_epoch(
                         padding=0,
                         normalize=True)
 
+
+
         if saver is not None and args.recovery_interval and (
                 last_batch or (batch_idx + 1) % args.recovery_interval == 0):
             saver.save_recovery(epoch, batch_idx=batch_idx)
@@ -828,6 +853,12 @@ def train_one_epoch(
 
     if hasattr(optimizer, 'sync_lookahead'):
         optimizer.sync_lookahead()
+
+    lrl = [param_group['lr'] for param_group in optimizer.param_groups]
+    lr = sum(lrl) / len(lrl)
+    if args.log_wandb:
+        wandb.log({"lr": lr,
+                   "epoch": epoch,})
 
     return OrderedDict([('loss', losses_m.avg)])
 
@@ -894,9 +925,41 @@ def validate(model, loader, loss_fn, args, amp_autocast=suppress, log_suffix='')
                         loss=losses_m, top1=top1_m, top5=top5_m))
 
     metrics = OrderedDict([('loss', losses_m.avg), ('top1', top1_m.avg), ('top5', top5_m.avg)])
-    
+
     return metrics
 
 
+# if __name__ == '__main__':
+#     main()
+
 if __name__ == '__main__':
-    main()
+    args_input = [
+        '/root/data/zqz/code/subset/datasets/FGVC',
+        '--dataset', 'stanford_cars',
+        '--num-classes', '196',
+        '--simple-aug',
+        '--model', 'vit_base_patch16_224_in21k',
+        '--batch-size', '2',
+        '--epochs', '100',
+        '--opt', 'adamw',
+        '--weight-decay', '0.05',
+        '--warmup-lr', '1e-7',
+        '--warmup-epochs', '10',
+        '--lr', '1e-2',
+        '--min-lr', '1e-8',
+        '--drop-path', '0',
+        '--img-size', '224',
+        '--model-ema',
+        '--model-ema-decay', '0.9998',
+        '--output', 'output/1',
+        '--amp',
+        '--pretrained',
+        '--tuning-mode', 'ssf',
+        '--gpu_id', '2',
+        "--experiment", "ssf",
+        "--run_name", "ssf_CUB",
+        # "--log-wandb"
+    ]
+    main(args_input)
+
+

@@ -14,6 +14,15 @@ from timm.data.transforms import str_to_interp_mode, str_to_pil_interp, RandomRe
 from timm.data.random_erasing import RandomErasing
 
 
+class TwoCropTransform:
+    """Create two crops of the same image"""
+    def __init__(self, transform):
+        self.transform = transform
+
+    def __call__(self, x):
+        return [self.transform(x), self.transform(x)]
+
+
 def transforms_direct_resize(
         img_size=224,
         interpolation='bilinear',
@@ -39,6 +48,7 @@ def transforms_direct_resize(
                 std=torch.tensor(std))
         ]
     return transforms.Compose(tfl)
+
 
 def transforms_simpleaug_train(
         img_size=224,
@@ -67,6 +77,37 @@ def transforms_simpleaug_train(
     return transforms.Compose(tfl)
 
 
+def transforms_contrastaug_train(
+        img_size=224,
+        scale=None,
+        ratio=None,
+        hflip=0.5,
+        color_jitter=0.8,
+        gray_scale=0.2,
+        interpolation='bilinear',
+        use_prefetcher=False,
+        mean=IMAGENET_DEFAULT_MEAN,
+        std=IMAGENET_DEFAULT_STD,
+):
+    tfl = [
+        RandomResizedCropAndInterpolation(img_size, scale=scale, ratio=ratio, interpolation=interpolation),
+        transforms.RandomHorizontalFlip(p=hflip)
+    ]
+    if use_prefetcher:
+        # prefetcher and collate will handle tensor conversion and norm
+        tfl += [ToNumpy()]
+    else:
+        tfl += [
+            transforms.RandomApply([
+                transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+            ], p=color_jitter),
+            transforms.RandomGrayscale(p=gray_scale),
+            transforms.ToTensor(),
+            transforms.Normalize(
+                mean=torch.tensor(mean),
+                std=torch.tensor(std))
+        ]
+    return TwoCropTransform(transforms.Compose(tfl))
 
 
 def transforms_imagenet_train(
@@ -202,6 +243,7 @@ def create_transform(
         use_prefetcher=False,
         no_aug=False,
         simple_aug=False,
+        contrast_aug=False,
         direct_resize=False,
         scale=None,
         ratio=None,
@@ -236,6 +278,16 @@ def create_transform(
                 assert not separate, "Cannot perform split augmentation with no_aug"
                 transform = transforms_direct_resize(
                     img_size,
+                    interpolation=interpolation,
+                    use_prefetcher=use_prefetcher,
+                    mean=mean,
+                    std=std)
+            elif contrast_aug:
+                transform = transforms_contrastaug_train(
+                    img_size,
+                    scale=scale,
+                    ratio=ratio,
+                    hflip=hflip,
                     interpolation=interpolation,
                     use_prefetcher=use_prefetcher,
                     mean=mean,

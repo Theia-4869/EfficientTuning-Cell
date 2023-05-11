@@ -474,6 +474,12 @@ class VisionTransformer(nn.Module):
         if weight_init != 'skip':
             self.init_weights(weight_init)
 
+
+        # nn.init.kaiming_normal_(self.head.weight, a=0, mode='fan_out')
+        # prior_prob = 0.01
+        # bias_value = -math.log((1 - prior_prob) / prior_prob)
+        # torch.nn.init.constant_(self.head.bias, bias_value)
+
     def init_weights(self, mode=''):
         assert mode in ('jax', 'jax_nlhb', 'moco', '')
         head_bias = -math.log(self.num_classes) if 'nlhb' in mode else 0.
@@ -540,10 +546,14 @@ class VisionTransformer(nn.Module):
         x = self.fc_norm(x)
         return x if pre_logits else self.head(x)
 
-    def forward(self, x):
-        x = self.forward_features(x)
-        x = self.forward_head(x)
+    def forward(self, x, return_feature=False):
+        f = self.forward_features(x)
+        x = self.forward_head(f)
         
+        if return_feature:
+            if self.global_pool:
+                f = f[:, self.num_tokens:].mean(dim=1) if self.global_pool == 'avg' else f[:, 0]
+            return x, f
         return x 
 
 

@@ -84,6 +84,7 @@ class PrefetchLoader:
         normalization_shape = (1, channels, 1, 1)
 
         self.loader = loader
+
         self.mean = torch.tensor([x * 255 for x in mean]).cuda().view(normalization_shape)
         self.std = torch.tensor([x * 255 for x in std]).cuda().view(normalization_shape)
         self.fp16 = fp16
@@ -103,7 +104,13 @@ class PrefetchLoader:
         for next_input, next_target in self.loader:
             with torch.cuda.stream(stream):
                 next_input = next_input.cuda(non_blocking=True)
-                next_target = next_target.cuda(non_blocking=True)
+                if type(next_target) == dict:
+                    next_target_temp = {}
+                    for name, tat in next_target.items():
+                        next_target_temp[name] = tat.cuda(non_blocking=True)
+                    next_target = next_target_temp
+                else:
+                    next_target = next_target.cuda(non_blocking=True)
                 if self.fp16:
                     next_input = next_input.half().sub_(self.mean).div_(self.std)
                 else:
@@ -170,6 +177,7 @@ def create_loader(
         use_prefetcher=True,
         no_aug=False,
         simple_aug=False,
+        contrast_aug=False,
         direct_resize=False,
         re_prob=0.,
         re_mode='const',
@@ -207,6 +215,7 @@ def create_loader(
         use_prefetcher=use_prefetcher,
         no_aug=no_aug,
         simple_aug=simple_aug,
+        contrast_aug=contrast_aug,
         direct_resize=direct_resize,
         scale=scale,
         ratio=ratio,

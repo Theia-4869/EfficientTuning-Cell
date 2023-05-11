@@ -106,11 +106,11 @@ Prepare [ImageNet-A](https://github.com/hendrycks/natural-adv-examples), [ImageN
 To fine-tune a pre-trained ViT model via `SSF` on CIFAR-100 or ImageNet-1K, run:
 
 ```bash
-bash train_scripts/vit/cifar_100/train_ssf.sh
+bash train_scripts/vit/cifar_100/train_ssf_2.sh
 ```
 or 
 ```bash
-bash train_scripts/vit/imagenet_1k/train_ssf.sh
+bash train_scripts/vit/imagenet_1k/train_ssf_2.sh
 ```
 
 You can also find the similar scripts for Swin, ConvNext, and AS-MLP models. You can easily reproduce our results. Enjoy!

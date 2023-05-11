@@ -38,6 +38,7 @@ class NABirds(Dataset):
         self.loader = default_loader
         self.train = train
         self.transform = transform
+        self.name = "nabirds"
 
         image_paths = pd.read_csv(os.path.join(dataset_path, 'images.txt'),
                                   sep=' ', names=['img_id', 'filepath'])
@@ -59,6 +60,12 @@ class NABirds(Dataset):
         self.class_names = load_class_names(dataset_path)
         self.class_hierarchy = load_hierarchy(dataset_path)
 
+        flag = "train" if train else "test"
+        print(f"Dataset: {self.name}")
+        print("Number of {} images: {}".format(flag, len(self.data)))
+        print("Number of {} classes: {}".format(flag, len(self.label_map)))
+        print("----------------------------------")
+
     def __len__(self):
         return len(self.data)
 
@@ -70,7 +77,7 @@ class NABirds(Dataset):
 
         if self.transform is not None:
             img = self.transform(img)
-        return img, target
+        return img, target, len(self.label_map), self.name
 
 def get_continuous_class_map(class_labels):
     label_set = set(class_labels)

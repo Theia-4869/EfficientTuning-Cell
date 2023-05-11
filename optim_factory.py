@@ -308,7 +308,19 @@ def create_optimizer_v2(
                 elif tuning_mode == 'ssf':
                     if "head." not in name and "ssf_scale" not in name and "ssf_shift_" not in name: 
                         param.requires_grad = False
-
+                elif tuning_mode == 'norm':
+                    if "norm" not in name:
+                        param.requires_grad = False
+                elif tuning_mode == 'norm_reinit':
+                    if "norm" not in name:
+                        param.requires_grad = False
+                    else:
+                        if "weight" in name:
+                            nn.init.normal_(param, mean=1, std=.02)
+                        if "bias" in name:
+                            nn.init.normal_(param, std=.02)
+                elif tuning_mode == 'part':
+                    pass
                 if param.requires_grad == True:
                     print(name)
                 
@@ -334,10 +346,6 @@ def create_optimizer_v2(
             weight_decay = 0.
         else:
             parameters = model_or_params.parameters()
-
-
-
-
 
     else:
         # iterable of parameters or param groups passed in

@@ -31,11 +31,18 @@ class Cub2011(VisionDataset):
 
         self.loader = default_loader
         self.train = train
+        self.name = 'cub2011'
         if download:
             self._download()
 
         if not self._check_integrity():
             raise RuntimeError('Dataset not found or corrupted. You can use download=True to download it')
+
+        flag = "train" if train else "test"
+        print(f"Dataset: {self.name}")
+        print("Number of {} images: {}".format(flag, len(self.data)))
+        print("Number of {} classes: {}".format(flag, len(self.class_names)))
+        print("----------------------------------")
 
     def _load_metadata(self):
         images = pd.read_csv(os.path.join(self.root, 'CUB_200_2011', 'images.txt'), sep=' ',
@@ -94,7 +101,7 @@ class Cub2011(VisionDataset):
             img = self.transform(img)
         if self.target_transform is not None:
             target = self.target_transform(target)
-        return img, target
+        return img, target, len(self.class_names), self.name
 
 
 if __name__ == '__main__':

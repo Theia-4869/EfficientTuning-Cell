@@ -27,7 +27,7 @@ from .nabirds import NABirds
 from .cub2011 import Cub2011
 from .vtab import VTAB
 
-
+from .fgvc import FGVC
 
 _TORCH_BASIC_DS = dict(
     cifar10=CIFAR10,
@@ -151,22 +151,30 @@ def create_dataset(
             download=download, batch_size=batch_size, repeats=repeats, **kwargs)
     else:
         # FIXME support more advance split cfg for ImageFolder/Tar datasets in the future
-
         # define my datasets
-        if name == 'stanford_dogs':
-            ds = dogs(root=root, train=is_training, **kwargs)
-        elif name == 'nabirds':
-            ds = NABirds(root=root, train=is_training, **kwargs)
-        elif name == 'cub2011':
-            ds = Cub2011(root=root, train=is_training, **kwargs)
-        elif name in _VTAB_DATASET:
+        if name in _VTAB_DATASET:
             ds = VTAB(root=root, train=is_training, **kwargs)
         else:
-            if os.path.isdir(os.path.join(root, split)):
-                root = os.path.join(root, split)
-            else:
-                if search_split and os.path.isdir(root):
-                    root = _search_split(root, split)
-            ds = ImageDataset(root, parser=name, class_map=class_map, load_bytes=load_bytes, **kwargs)
+            ds = FGVC(root, name=name, train=is_training, **kwargs)
+        # if name == 'stanford_dogs':
+        #     ds = dogs(root=root, train=is_training, **kwargs)
+        #     # ds = FGVC(root, name="stanford_dogs", train=is_training, **kwargs)
+        # elif name == 'nabirds':
+        #     ds = NABirds(root=root, train=is_training, **kwargs)
+        # elif name == 'cub2011':
+        #     ds = Cub2011(root=root, train=is_training, **kwargs)
+        # elif name == 'oxford_flowers':
+        #     ds = FGVC(root, name="oxford_flowers", train=is_training, **kwargs)
+        # elif name == 'stanford_cars':
+        #     ds = FGVC(root, name="stanford_cars", train=is_training, **kwargs)
+        # elif name in _VTAB_DATASET:
+        #     ds = VTAB(root=root, train=is_training, **kwargs)
+        # else:
+        #     if os.path.isdir(os.path.join(root, split)):
+        #         root = os.path.join(root, split)
+        #     else:
+        #         if search_split and os.path.isdir(root):
+        #             root = _search_split(root, split)
+        #     ds = ImageDataset(root, parser=name, class_map=class_map, load_bytes=load_bytes, **kwargs)
     return ds
 

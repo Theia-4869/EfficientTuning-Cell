@@ -24,8 +24,8 @@ class dogs(data.Dataset):
             puts it in root directory. If the tar files are already downloaded, they are not
             downloaded again.
     """
-    #folder = 'StanfordDogs'
-    folder = ''
+    folder = 'StanfordDogs'
+    # folder = ''
     download_url_prefix = 'http://vision.stanford.edu/aditya86/ImageNetDogs'
 
     def __init__(self,
@@ -41,6 +41,7 @@ class dogs(data.Dataset):
         self.cropped = cropped
         self.transform = transform
         self.target_transform = target_transform
+        self.name = "stanford_dogs"
 
         if download:
             self.download()
@@ -57,11 +58,11 @@ class dogs(data.Dataset):
                                         for annotation, idx in split]
             self._flat_breed_annotations = sum(self._breed_annotations, [])
 
-            self._flat_breed_images = [(annotation+'.jpg', idx) for annotation, box, idx in self._flat_breed_annotations]
+            self.data = [(annotation+'.jpg', idx) for annotation, box, idx in self._flat_breed_annotations]
         else:
             self._breed_images = [(annotation+'.jpg', idx) for annotation, idx in split]
 
-            self._flat_breed_images = self._breed_images
+            self.data = self._breed_images
 
         self.classes = ["Chihuaha",
                         "Japanese Spaniel",
@@ -184,11 +185,14 @@ class dogs(data.Dataset):
                         "Dhole",
                         "African Hunting Dog"]
 
-
-
+        flag = "train" if train else "test"
+        print(f"Dataset: {self.name}")
+        print("Number of {} images: {}".format(flag, len(self.data)))
+        print("Number of {} classes: {}".format(flag, len(self.classes)))
+        print("----------------------------------")
 
     def __len__(self):
-        return len(self._flat_breed_images)
+        return len(self.data)
 
     def __getitem__(self, index):
         """
@@ -197,7 +201,7 @@ class dogs(data.Dataset):
         Returns:
             tuple: (image, target) where target is index of the target character class.
         """
-        image_name, target_class = self._flat_breed_images[index]
+        image_name, target_class = self.data[index]
         image_path = join(self.images_folder, image_name)
         image = Image.open(image_path).convert('RGB')
 
@@ -210,7 +214,7 @@ class dogs(data.Dataset):
         if self.target_transform:
             target_class = self.target_transform(target_class)
 
-        return image, target_class
+        return image, target_class, len(self.classes), self.name
 
     def download(self):
         import tarfile
@@ -255,13 +259,13 @@ class dogs(data.Dataset):
 
     def stats(self):
         counts = {}
-        for index in range(len(self._flat_breed_images)):
-            image_name, target_class = self._flat_breed_images[index]
+        for index in range(len(self.data)):
+            image_name, target_class = self.data[index]
             if target_class not in counts.keys():
                 counts[target_class] = 1
             else:
                 counts[target_class] += 1
 
-        print("%d samples spanning %d classes (avg %f per class)"%(len(self._flat_breed_images), len(counts.keys()), float(len(self._flat_breed_images))/float(len(counts.keys()))))
+        print("%d samples spanning %d classes (avg %f per class)"%(len(self.data), len(counts.keys()), float(len(self.data))/float(len(counts.keys()))))
 
         return counts
