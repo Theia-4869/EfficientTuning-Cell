@@ -9,7 +9,6 @@ wandb
 *.tar
 *.pth
 *.out
-*.sh
 
 # General
 .DS_Store?

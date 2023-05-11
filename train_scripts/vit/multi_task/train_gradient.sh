@@ -1,0 +1,18 @@
+python multitask_jointTrain.py /data/zz/SSF/datasets/FGVC/ \
+  --dataset 'oxford_flowers' 'cub2011' \
+  --num-classes_list "102" '200' \
+  --simple-aug \
+  --model vit_base_patch16_224_in21k \
+  --batch-size 64 --epochs 500 \
+	--opt adam  --weight-decay 0.0 \
+  --warmup-lr 1e-7 --warmup-epochs 50  \
+  --lr 8e-6 --min-lr 1e-8 \
+  --drop-path 0 --img-size 224 \
+	--model-ema --model-ema-decay 0.99992  \
+	--output  output/gradient \
+	--amp  --pretrained  \
+  --experiment multi_task \
+  --gpu_id 5 \
+  --batch-size 64 \
+  --output output/multi_task \
+  --log-wandb
