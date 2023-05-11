@@ -2,7 +2,7 @@ gpu_id=1
 bz=64
 lr=0.001
 
-python train_our.py /data/zqz/FGVC \
+python train_our.py /data/zqz/data/FGVC \
     --dataset nabirds \
     --num-classes 555 --simple-aug \
     --model vit_base_patch16_224_in21k \
@@ -17,7 +17,7 @@ python train_our.py /data/zqz/FGVC \
     --amp --tuning-mode part --pretrained \
     --pruning --pruning_method gradient_perCell \
     --times_para 2 \
-    --gpu-id $gpu_id \
+    --gpu_id $gpu_id \
     --log-wandb \
     --experiment nabirds_zqz \
     --run_name test \

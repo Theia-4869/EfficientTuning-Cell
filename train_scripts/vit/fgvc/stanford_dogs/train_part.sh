@@ -1,8 +1,8 @@
-gpu_id=1
+gpu_id=3
 bz=32
 lr=9e-5
 
-python train_our.py /data/zqz/FGVC \
+python train_our.py /data/zqz/data/FGVC \
     --dataset stanford_dogs \
     --num-classes 120 --simple-aug \
     --model vit_base_patch16_224_in21k \
@@ -16,9 +16,9 @@ python train_our.py /data/zqz/FGVC \
     --output output/ \
     --amp --tuning-mode part --pretrained \
     --pruning --pruning_method gradient_perCell \
-    --times_para 2 \
-    --gpu-id $gpu_id \
+    --times_para 1 \
+    --gpu_id $gpu_id \
     --log-wandb \
     --experiment dogs_zqz \
-    --run-name test \
+    --run_name test \
     --contrast-aug --no-prefetcher --contrastive

@@ -217,7 +217,7 @@ def main(args_input = None):
         args.dataset = args.dataset[0]
 
     args.output = os.path.join(args.output,args.dataset)
-    args.run_name = f"{args.dataset}_bz{args.batch_size}_lr{args.lr}" + f"_{args.run_name}"
+    args.run_name = f"{args.dataset}_bz{args.batch_size}_lr{args.lr}_num{args.times_para}" + f"_{args.run_name}"
     args.output = os.path.join(args.output,args.run_name)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
