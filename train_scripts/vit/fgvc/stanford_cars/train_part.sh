@@ -1,8 +1,8 @@
-gpu_id=1
+gpu_id=4
 bz=64
 lr=0.003
 
-python train_our.py /data/zqz/FGVC \
+python train_our.py /data/zqz/data/FGVC \
     --dataset stanford_cars \
     --num-classes 196 --simple-aug \
     --model vit_base_patch16_224_in21k \
@@ -17,8 +17,8 @@ python train_our.py /data/zqz/FGVC \
     --amp --tuning-mode part --pretrained \
     --pruning --pruning_method gradient_perCell \
     --times_para 2 \
-    --gpu-id $gpu_id \
+    --gpu_id $gpu_id \
     --log-wandb \
     --experiment cars_zqz \
-    --run-name test \
+    --run_name test \
     --contrast-aug --no-prefetcher --contrastive

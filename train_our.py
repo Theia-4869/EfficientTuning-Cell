@@ -529,7 +529,7 @@ def main(args_input = None):
                 temp_ema_eval_metrics = OrderedDict(epoch=epoch)
                 temp_ema_eval_metrics.update([('eval_' + k + '_ema', v) for k, v in ema_eval_metrics.items()])
 
-                if args.log_ and has_wandb:
+                if args.log_wandb and has_wandb:
                     wandb.log(temp_ema_eval_metrics)
 
                 if best_metric_ema < ema_eval_metrics["top1"]:
