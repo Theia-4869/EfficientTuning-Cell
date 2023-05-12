@@ -133,7 +133,7 @@ def create_dataload(args, num_aug_splits, data_config):
         batch_size=args.batch_size,
         is_training=True,
         use_prefetcher=args.prefetcher,
-        no_aug=args.no_aug,
+        no_aug=False,
         simple_aug=args.simple_aug,
         contrast_aug=args.contrast_aug,
         re_prob=args.reprob,
@@ -541,9 +541,10 @@ def main(args_input = None):
 
             if lr_scheduler is not None:
                 # step LR for next epoch
-                lr_scheduler.step(epoch + 1, ema_eval_metrics[eval_metric])
-
-
+                if model_ema is not None:
+                    lr_scheduler.step(epoch + 1, ema_eval_metrics[eval_metric])
+                else:
+                    lr_scheduler.step(epoch + 1, eval_metrics[eval_metric])
 
             if saver is not None:
                 # save proper checkpoint with eval metric

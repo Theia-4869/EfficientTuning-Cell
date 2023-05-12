@@ -18,15 +18,22 @@ class VTAB(ImageFolder):
 
 
         self.samples = []
+        self.class_ids = set()
         if train:
             with open(train_list_path, 'r') as f:
                 for line in f:
                     img_name = line.split(' ')[0]
                     label = int(line.split(' ')[1])
                     self.samples.append((os.path.join(root,img_name), label))
+                    self.class_ids.add(label)
         else:
             with open(test_list_path, 'r') as f:
                 for line in f:
                     img_name = line.split(' ')[0]
                     label = int(line.split(' ')[1])
                     self.samples.append((os.path.join(root,img_name), label))
+                    self.class_ids.add(label)
+        
+        flag = "train" if train else "test"
+        print("Number of {} images: {}".format(flag, len(self.samples)))
+        print("Number of {} classes: {}".format(flag, len(self.class_ids)))
